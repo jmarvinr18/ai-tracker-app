@@ -1,0 +1,164 @@
+@import './base.css';
+
+#app {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--step-5) var(--step-4) var(--step-7);
+}
+
+/* --- shared instrument primitives ------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--step-5);
+}
+
+.panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--step-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--step-4);
+}
+
+.panel__title {
+  font-size: 1rem;
+}
+
+.panel__note {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  max-width: 46ch;
+}
+
+.stack {
+  display: grid;
+  gap: var(--step-5);
+}
+
+/* Buttons: an instrument's controls, not calls to action. */
+.button {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--ink-soft);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+.button--primary:hover:not(:disabled) {
+  background: #1c3346;
+}
+
+/* Fields */
+.field {
+  display: grid;
+  gap: var(--step-1);
+}
+
+.field__hint {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.input,
+.textarea,
+.select {
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.6rem;
+  width: 100%;
+}
+
+.input,
+.textarea {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.textarea {
+  min-height: 8rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input:hover,
+.textarea:hover,
+.select:hover {
+  border-color: var(--ink-soft);
+}
+
+/* A tag reading `live`, `pasted`, `sample`, or a status word. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+  padding: 0.1rem 0.5rem;
+  color: var(--ink-soft);
+  background: var(--paper);
+  white-space: nowrap;
+}
+
+.tag--live {
+  color: var(--live);
+  background: var(--live-wash);
+  border-color: transparent;
+}
+
+.tag--stall {
+  color: var(--stall);
+  background: var(--stall-wash);
+  border-color: transparent;
+}
+
+.grid-2 {
+  display: grid;
+  gap: var(--step-5);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 720px) {
+  #app {
+    padding: var(--step-6) var(--step-5) var(--step-7);
+  }
+}
