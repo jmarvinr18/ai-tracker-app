@@ -81,7 +81,7 @@ async function submitFeedback(): Promise<void> {
   // `sentiment` goes as the word. A number returns 400 — the select is bound to
   // the three words so the wrong type cannot be built here in the first place.
   const submission: FeedbackSubmission = { acf2_id: acf2Id, sentiment: feedback.sentiment }
-  const timeSaved = feedback.timeSaved.trim()
+  const timeSaved = feedback.timeSaved
   if (timeSaved) {
     const parsed = Number(timeSaved)
     if (!Number.isFinite(parsed)) {
