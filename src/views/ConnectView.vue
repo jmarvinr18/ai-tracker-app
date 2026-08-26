@@ -16,6 +16,15 @@ const pasted = ref('')
 const pasteError = ref<TrackerError | null>(null)
 const healthNote = ref('')
 
+// Environment variable checks for UI badges
+const envVars = {
+  baseUrl: !!import.meta.env.VITE_API_BASE_URL,
+  apiId: !!import.meta.env.VITE_API_ID,
+  apiKey: !!import.meta.env.VITE_API_KEY,
+  agentId: !!import.meta.env.VITE_AGENT_ID,
+  windowDays: !!import.meta.env.VITE_WINDOW_DAYS,
+}
+
 async function fetchLive(): Promise<void> {
   await store.loadInsights()
   if (store.status === 'ready') router.push('/')
@@ -72,7 +81,10 @@ async function pingHealth(): Promise<void> {
 
       <div class="fields">
         <label class="field">
-          <span class="label">Base URL</span>
+          <span class="label">
+            Base URL
+            <span v-if="envVars.baseUrl" class="badge badge--env">from .env</span>
+          </span>
           <input
             v-model="config.baseUrl"
             class="input"
@@ -85,7 +97,10 @@ async function pingHealth(): Promise<void> {
         </label>
 
         <label class="field">
-          <span class="label">API ID</span>
+          <span class="label">
+            API ID
+            <span v-if="envVars.apiId" class="badge badge--env">from .env</span>
+          </span>
           <input
             v-model="config.apiId"
             class="input"
@@ -102,7 +117,10 @@ async function pingHealth(): Promise<void> {
         </label>
 
         <label class="field">
-          <span class="label">API key</span>
+          <span class="label">
+            API key
+            <span v-if="envVars.apiKey" class="badge badge--env">from .env</span>
+          </span>
           <input
             v-model="config.apiKey"
             class="input"
@@ -119,7 +137,10 @@ async function pingHealth(): Promise<void> {
         </label>
 
         <label class="field">
-          <span class="label">Agent ID</span>
+          <span class="label">
+            Agent ID
+            <span v-if="envVars.agentId" class="badge badge--env">from .env</span>
+          </span>
           <input
             v-model="config.agentId"
             class="input"
@@ -132,7 +153,10 @@ async function pingHealth(): Promise<void> {
         </label>
 
         <label class="field">
-          <span class="label">Window</span>
+          <span class="label">
+            Window
+            <span v-if="envVars.windowDays" class="badge badge--env">from .env</span>
+          </span>
           <input v-model.number="config.windowDays" class="input" type="number" min="1" max="365" />
           <span class="field__hint">Days of history to request.</span>
         </label>
@@ -301,5 +325,21 @@ code {
   background: transparent;
   padding: 0;
   color: inherit;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: var(--step-1);
+}
+
+.badge--env {
+  background: #dbeafe;
+  color: #1e40af;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useTrackerStore } from '@/stores/tracker'
@@ -18,12 +18,129 @@ const store = useTrackerStore()
 const { reading, vitals, health, error, source, busy, regenerateCooldownRemaining } =
   storeToRefs(store)
 
+// Filter state
+const selectedDivisions = ref<string[]>([])
+const selectedSentiments = ref<string[]>([])
+const selectedPlatforms = ref<string[]>([])
+
+// Get unique values for filters
+const divisions = computed(() => {
+  const divs = new Set(reading.value?.adoption.map((row) => row.division) ?? [])
+  return Array.from(divs).sort()
+})
+
+const sentiments = computed(() => {
+  return ['positive', 'neutral', 'negative']
+})
+
+const platforms = computed(() => {
+  const plats = new Set(reading.value?.platforms.map((row) => row.platform) ?? [])
+  return Array.from(plats).sort()
+})
+
+// Filter functions
+function toggleDivision(division: string): void {
+  const idx = selectedDivisions.value.indexOf(division)
+  if (idx > -1) {
+    selectedDivisions.value.splice(idx, 1)
+  } else {
+    selectedDivisions.value.push(division)
+  }
+}
+
+function toggleSentiment(sentiment: string): void {
+  const idx = selectedSentiments.value.indexOf(sentiment)
+  if (idx > -1) {
+    selectedSentiments.value.splice(idx, 1)
+  } else {
+    selectedSentiments.value.push(sentiment)
+  }
+}
+
+function togglePlatform(platform: string): void {
+  const idx = selectedPlatforms.value.indexOf(platform)
+  if (idx > -1) {
+    selectedPlatforms.value.splice(idx, 1)
+  } else {
+    selectedPlatforms.value.push(platform)
+  }
+}
+
+function clearAllFilters(): void {
+  selectedDivisions.value = []
+  selectedSentiments.value = []
+  selectedPlatforms.value = []
+}
+
+// Filtered data
+const filteredAdoption = computed(() => {
+  if (!reading.value) return []
+  return reading.value.adoption.filter((row) => {
+    if (selectedDivisions.value.length > 0 && !selectedDivisions.value.includes(row.division)) {
+      return false
+    }
+    return true
+  })
+})
+
+const filteredSentiment = computed(() => {
+  if (!reading.value) return []
+  return reading.value.sentiment.filter((row) => {
+    if (selectedSentiments.value.length > 0 && !selectedSentiments.value.includes(String(row.sentiment))) {
+      return false
+    }
+    return true
+  })
+})
+
+const filteredPlatforms = computed(() => {
+  if (!reading.value) return []
+  return reading.value.platforms.filter((row) => {
+    if (selectedPlatforms.value.length > 0 && !selectedPlatforms.value.includes(row.platform)) {
+      return false
+    }
+    return true
+  })
+})
+
+const filteredVitals = computed(() => {
+  if (!vitals.value) return null
+  // Update vitals based on filtered adoption data
+  const filteredEvents = filteredAdoption.value.reduce((sum, row) => sum + row.events, 0)
+  const filteredUsers = filteredAdoption.value.reduce((sum, row) => sum + row.active_users, 0)
+  return {
+    ...vitals.value,
+    events: filteredEvents,
+    activeUsers: filteredUsers,
+  }
+})
+
 const platformNote = computed(() => {
-  const platforms = reading.value?.platforms ?? []
-  if (platforms.length === 0) return undefined
-  return platforms
+  if (filteredPlatforms.value.length === 0) return undefined
+  return filteredPlatforms.value
     .map((row) => `${row.platform}: ${formatCount(row.events)} uses, ${row.active_users} people`)
     .join(' · ')
+})
+
+const hasActiveFilters = computed(() => {
+  return selectedDivisions.value.length > 0 || selectedSentiments.value.length > 0 || selectedPlatforms.value.length > 0
+})
+
+// Create filtered reading object with updated totals
+const filteredReading = computed(() => {
+  if (!reading.value) return null
+  const events = filteredAdoption.value.reduce((sum, row) => sum + row.events, 0)
+  const users = filteredAdoption.value.reduce((sum, row) => sum + row.active_users, 0)
+  return {
+    ...reading.value,
+    adoption: filteredAdoption.value,
+    platforms: filteredPlatforms.value,
+    totals: {
+      ...reading.value.totals,
+      events,
+      active_users: users,
+    },
+  }
 })
 </script>
 
@@ -32,9 +149,34 @@ const platformNote = computed(() => {
     <ErrorNotice v-if="error" :error="error" @dismiss="store.error = null" />
 
     <template v-if="reading && vitals && health">
-      <KpiRow :reading="reading" :sentiment="health.sentiment" />
+      <KpiRow :reading="filteredReading || reading" :sentiment="health.sentiment" />
 
-      <VitalSigns :vitals="vitals" />
+      <!-- Division Filter -->
+      <div v-if="divisions.length > 0" class="filter-bar">
+        <div class="filter-bar-title">📊 Filter by Division</div>
+        <div class="filter-tags">
+          <button
+            v-for="division in divisions"
+            :key="division"
+            type="button"
+            class="filter-tag"
+            :class="{ active: selectedDivisions.includes(division) }"
+            @click="toggleDivision(division)"
+          >
+            {{ division }}
+          </button>
+          <button
+            v-if="selectedDivisions.length > 0"
+            type="button"
+            class="filter-tag clear"
+            @click="selectedDivisions = []"
+          >
+            ✕ Clear
+          </button>
+        </div>
+      </div>
+
+      <VitalSigns :vitals="filteredVitals || vitals" />
 
       <div class="grid-2">
         <PanelCard
@@ -49,17 +191,45 @@ const platformNote = computed(() => {
           />
         </PanelCard>
 
-        <PanelCard
-          title="Sentiment"
-          note="From the survey that fires some days after a person's first use."
-        >
-          <SentimentBars v-if="health.sentiment.totalResponses > 0" :sentiment="health.sentiment" />
-          <EmptyState
-            v-else
-            headline="No survey responses yet"
-            action="The survey fires a few days after a person's first use. Submit one from Send data to see this populate, or wait for the schedule."
-          />
-        </PanelCard>
+        <div>
+          <!-- Sentiment Filter -->
+          <div v-if="filteredSentiment.length > 0" class="filter-bar">
+            <div class="filter-bar-title">💬 Filter by Sentiment</div>
+            <div class="filter-tags">
+              <button
+                v-for="sentiment in sentiments"
+                :key="sentiment"
+                type="button"
+                class="filter-tag"
+                :class="[{ active: selectedSentiments.includes(sentiment) }, `sentiment-${sentiment}`]"
+                @click="toggleSentiment(sentiment)"
+              >
+                <span class="sentiment-dot" :class="`sentiment-${sentiment}`"></span>
+                {{ sentiment.charAt(0).toUpperCase() + sentiment.slice(1) }}
+              </button>
+              <button
+                v-if="selectedSentiments.length > 0"
+                type="button"
+                class="filter-tag clear"
+                @click="selectedSentiments = []"
+              >
+                ✕ Clear
+              </button>
+            </div>
+          </div>
+
+          <PanelCard
+            title="Sentiment"
+            note="From the survey that fires some days after a person's first use."
+          >
+            <SentimentBars v-if="health.sentiment.totalResponses > 0" :sentiment="health.sentiment" />
+            <EmptyState
+              v-else
+              headline="No survey responses yet"
+              action="The survey fires a few days after a person's first use. Submit one from Send data to see this populate, or wait for the schedule."
+            />
+          </PanelCard>
+        </div>
       </div>
 
       <div class="grid-2">
@@ -75,22 +245,49 @@ const platformNote = computed(() => {
           />
         </PanelCard>
 
-        <PanelCard title="Platforms" :note="platformNote">
-          <ul v-if="reading.platforms.length" class="platforms">
-            <li v-for="row in reading.platforms" :key="row.platform">
-              <span class="platforms__name">{{ row.platform }}</span>
-              <span class="num">{{ formatCount(row.events) }}</span>
-              <span class="platforms__unit">uses</span>
-              <span class="num">{{ formatCount(row.active_users) }}</span>
-              <span class="platforms__unit">people</span>
-            </li>
-          </ul>
-          <EmptyState
-            v-else
-            headline="No platforms recorded"
-            action="Events carry a platform field. Post one from Send data, or check that the SDK is setting it."
-          />
-        </PanelCard>
+        <div>
+          <!-- Platform Filter -->
+          <div v-if="platforms.length > 0" class="filter-bar">
+            <div class="filter-bar-title">🖥️ Filter by Platform</div>
+            <div class="filter-tags">
+              <button
+                v-for="platform in platforms"
+                :key="platform"
+                type="button"
+                class="filter-tag"
+                :class="{ active: selectedPlatforms.includes(platform) }"
+                @click="togglePlatform(platform)"
+              >
+                {{ platform }}
+              </button>
+              <button
+                v-if="selectedPlatforms.length > 0"
+                type="button"
+                class="filter-tag clear"
+                @click="selectedPlatforms = []"
+              >
+                ✕ Clear
+              </button>
+            </div>
+          </div>
+
+          <PanelCard title="Platforms" :note="platformNote">
+            <ul v-if="filteredPlatforms.length" class="platforms">
+              <li v-for="row in filteredPlatforms" :key="row.platform">
+                <span class="platforms__name">{{ row.platform }}</span>
+                <span class="num">{{ formatCount(row.events) }}</span>
+                <span class="platforms__unit">uses</span>
+                <span class="num">{{ formatCount(row.active_users) }}</span>
+                <span class="platforms__unit">people</span>
+              </li>
+            </ul>
+            <EmptyState
+              v-else
+              headline="No platforms with current filters"
+              action="Adjust your filters to see platform data."
+            />
+          </PanelCard>
+        </div>
       </div>
 
       <PanelCard
@@ -124,6 +321,135 @@ const platformNote = computed(() => {
 </template>
 
 <style scoped>
+.filter-bar {
+  background: linear-gradient(135deg, #fafaf8, #f3f4f6);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: var(--step-4);
+  backdrop-filter: blur(10px);
+}
+
+.filter-bar-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-tag {
+  padding: 8px 14px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.filter-tag:hover {
+  border-color: #4f46e5;
+  background: #f9f5ff;
+  color: #4f46e5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+}
+
+.filter-tag.active {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-color: #4f46e5;
+  color: white;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+}
+
+.filter-tag.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+}
+
+.filter-tag.clear {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+  padding: 8px 12px;
+}
+
+.filter-tag.clear:hover {
+  background: #fecaca;
+  border-color: #f87171;
+  transform: translateY(-2px);
+}
+
+.filter-tag.sentiment-positive {
+  --accent-light: #dcfce7;
+  --accent-main: #22c55e;
+}
+
+.filter-tag.sentiment-positive:hover:not(.active) {
+  background: var(--accent-light);
+  border-color: var(--accent-main);
+  color: var(--accent-main);
+}
+
+.filter-tag.sentiment-neutral {
+  --accent-light: #fef3c7;
+  --accent-main: #f59e0b;
+}
+
+.filter-tag.sentiment-neutral:hover:not(.active) {
+  background: var(--accent-light);
+  border-color: var(--accent-main);
+  color: var(--accent-main);
+}
+
+.filter-tag.sentiment-negative {
+  --accent-light: #fee2e2;
+  --accent-main: #ef4444;
+}
+
+.filter-tag.sentiment-negative:hover:not(.active) {
+  background: var(--accent-light);
+  border-color: var(--accent-main);
+  color: var(--accent-main);
+}
+
+.sentiment-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.sentiment-positive {
+  background: #22c55e;
+}
+
+.sentiment-neutral {
+  background: #f59e0b;
+}
+
+.sentiment-negative {
+  background: #ef4444;
+}
+
 .actions {
   display: flex;
   gap: var(--step-2);

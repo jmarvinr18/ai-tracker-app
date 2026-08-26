@@ -136,7 +136,8 @@ export interface FeedbackSubmission {
   sentiment: SentimentWord
   time_saved?: number
   barriers?: string
-  value_signals?: string
+  /** An array of selected options or a custom object. Backend wraps arrays in {"selected": [...]}. */
+  value_signals?: string[] | Record<string, unknown>
 }
 
 export interface FeedbackSubmitResponse {

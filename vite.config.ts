@@ -18,11 +18,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: "https://vpce-022addb9cb8f25e46-r91kb8z0.execute-api.us-east-1.vpce.amazonaws.com",
+        target: "https://2ikkcnfdpd.execute-api.ap-southeast-1.amazonaws.com",
         changeOrigin: true,
         secure: true,
-        rewrite: p => p.replace(/^\/api/, '/develop'),
-        headers: {'x-apigw-api-id': "k87zzd1udb"}
+        rewrite: p => p.replace(/^\/api/, '/develop')
       }
     }
   }

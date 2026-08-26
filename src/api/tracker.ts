@@ -74,16 +74,16 @@ function requireConfig(config: ConnectionConfig, options: RequestOptions): void 
       action: 'Open Connect and enter the VPC endpoint URL, or load the sample dataset.',
     })
   }
-  if (!config.apiId.trim()) {
-    throw new TrackerError({
-      kind: 'config',
-      title: 'Set the API ID first',
-      detail:
-        'The endpoint host is shared by every private API in the region. Without ' +
-        'x-apigw-api-id the gateway cannot tell which API the call is for.',
-      action: 'Open Connect and enter the API ID.',
-    })
-  }
+  // if (!config.apiId.trim()) {
+  //   throw new TrackerError({
+  //     kind: 'config',
+  //     title: 'Set the API ID first',
+  //     detail:
+  //       'The endpoint host is shared by every private API in the region. Without ' +
+  //       'x-apigw-api-id the gateway cannot tell which API the call is for.',
+  //     action: 'Open Connect and enter the API ID.',
+  //   })
+  // }
   if (options.authenticated !== false && !config.apiKey) {
     throw new TrackerError({
       kind: 'config',

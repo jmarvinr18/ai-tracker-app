@@ -35,6 +35,19 @@ const PERSISTED_FIELDS = ['baseUrl', 'apiId', 'agentId', 'windowDays'] as const
 const STORAGE_KEY = 'adoption-signal.connection'
 const REGENERATE_COOLDOWN_MS = 60_000
 
+function loadEnvConfig(): Partial<ConnectionConfig> {
+  const config: Partial<ConnectionConfig> = {}
+  if (import.meta.env.VITE_API_BASE_URL) config.baseUrl = import.meta.env.VITE_API_BASE_URL
+  if (import.meta.env.VITE_API_ID) config.apiId = import.meta.env.VITE_API_ID
+  if (import.meta.env.VITE_API_KEY) config.apiKey = import.meta.env.VITE_API_KEY
+  if (import.meta.env.VITE_AGENT_ID) config.agentId = import.meta.env.VITE_AGENT_ID
+  if (import.meta.env.VITE_WINDOW_DAYS) {
+    const days = parseInt(import.meta.env.VITE_WINDOW_DAYS, 10)
+    if (!isNaN(days)) config.windowDays = days
+  }
+  return config
+}
+
 function loadPersistedConfig(): Partial<ConnectionConfig> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -61,6 +74,7 @@ export const useTrackerStore = defineStore('tracker', () => {
     apiKey: '',
     agentId: 'clarvo-rag-v1',
     windowDays: 30,
+    ...loadEnvConfig(),
     ...loadPersistedConfig(),
   })
 
