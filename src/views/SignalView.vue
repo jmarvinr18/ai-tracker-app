@@ -104,14 +104,25 @@ const filteredPlatforms = computed(() => {
 })
 
 const filteredVitals = computed(() => {
-  if (!vitals.value) return null
-  // Update vitals based on filtered adoption data
-  const filteredEvents = filteredAdoption.value.reduce((sum, row) => sum + row.events, 0)
-  const filteredUsers = filteredAdoption.value.reduce((sum, row) => sum + row.active_users, 0)
+  if (!vitals.value || !reading.value) return null
+
+  // Get the filtered divisions
+  const filteredDivisionNames = new Set(filteredAdoption.value.map(row => row.division))
+
+  // Filter the divisions in vitals
+  const filteredDivisions = vitals.value.divisions.filter(
+    div => filteredDivisionNames.has(div.division)
+  )
+
+  // Filter the stalled array
+  const filteredStalled = vitals.value.stalled.filter(
+    entry => filteredDivisionNames.has(entry.division)
+  )
+
   return {
     ...vitals.value,
-    events: filteredEvents,
-    activeUsers: filteredUsers,
+    divisions: filteredDivisions,
+    stalled: filteredStalled,
   }
 })
 
@@ -142,6 +153,40 @@ const filteredReading = computed(() => {
     },
   }
 })
+
+// Create filtered health object with filtered sentiment data
+const filteredHealth = computed(() => {
+  if (!health.value) return null
+
+  // If no sentiment filters are selected, use all sentiments
+  const sentimentsToShow = selectedSentiments.value.length > 0
+    ? selectedSentiments.value
+    : sentiments.value
+
+  const filteredWords = health.value.sentiment.words.filter((w: any) =>
+    sentimentsToShow.includes(w.word)
+  )
+
+  const filteredCodes = health.value.sentiment.codes.filter((c: any) => {
+    return !sentimentsToShow.length || sentimentsToShow.some((s: string) => {
+      const codeWord = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+      return c.code === codeWord
+    })
+  })
+
+  const totalResponses = filteredWords.reduce((sum, w: any) => sum + (w.responses || 0), 0)
+
+  return {
+    ...health.value,
+    sentiment: {
+      ...health.value.sentiment,
+      words: filteredWords,
+      codes: filteredCodes,
+      totalResponses,
+    },
+  }
+})
+
 </script>
 
 <template>
@@ -183,7 +228,7 @@ const filteredReading = computed(() => {
           title="Weekly trend"
           note="Distinct people with at least one use each week, across the whole agent."
         >
-          <TrendChart v-if="reading.trend.length" :trend="reading.trend" />
+          <TrendChart v-if="filteredReading && filteredReading.trend.length" :trend="filteredReading.trend" />
           <EmptyState
             v-else
             headline="No weekly trend yet"
@@ -222,7 +267,7 @@ const filteredReading = computed(() => {
             title="Sentiment"
             note="From the survey that fires some days after a person's first use."
           >
-            <SentimentBars v-if="health.sentiment.totalResponses > 0" :sentiment="health.sentiment" />
+            <SentimentBars v-if="filteredHealth && filteredHealth.sentiment.totalResponses > 0" :sentiment="filteredHealth.sentiment" />
             <EmptyState
               v-else
               headline="No survey responses yet"
