@@ -21,6 +21,11 @@ const router = createRouter({
       name: 'connect',
       component: () => import('../views/ConnectView.vue'),
     },
+    {
+      path: '/feedback-wizard',
+      name: 'feedbackWizard',
+      component: () => import('../views/FeedbackWizardView.vue'),
+    },
   ],
 })
 

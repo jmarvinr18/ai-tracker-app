@@ -1,1 +1,1 @@
-{"ok": true, "action": "register_agent", "result": {"agent_id": "slgs-ai-agent", "api_key": "Q3l_Qv_DqThxTNSIN03h4Ja9e5FO0oklM4tcC1tjBcU", "note": "Shown once and not recoverable — only its SHA-256 is stored. Put it in ADOPTION_TRACKER_API_KEY now."}}
+{"ok": true, "action": "register_agent", "result": {"agent_id": "clarvo-rag-v1", "api_key": "Bk0FnPQX4A3ps-FXDnJk1n8QS0K-KKFdcljwMv8tjI8", "note": "Shown once and not recoverable — only its SHA-256 is stored. Put it in ADOPTION_TRACKER_API_KEY now."}}

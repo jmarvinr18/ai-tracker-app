@@ -91,7 +91,14 @@ async function submitFeedback(): Promise<void> {
     submission.time_saved = parsed
   }
   if (feedback.barriers.trim()) submission.barriers = feedback.barriers.trim()
-  if (feedback.valueSignals.trim()) submission.value_signals = feedback.valueSignals.trim()
+  if (feedback.valueSignals.trim()) {
+    try {
+      submission.value_signals = JSON.parse(feedback.valueSignals.trim())
+    } catch {
+      feedbackError.value = asTrackerError(new DraftError('Value signals must be valid JSON (e.g., ["speed"])'))
+      return
+    }
+  }
 
   try {
     await store.submitFeedback(submission)
